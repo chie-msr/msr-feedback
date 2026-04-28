@@ -2,25 +2,29 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Deployment Feedback Form — Medical Staffing Resources, Inc.</title>
   </head>
 <body>
+<div class="page">
+  <div id="ff-form">
+    <button class="submit-btn" onclick="handleSubmit()">Submit Feedback</button>
+  </div>
+  <div class="success-screen" id="successScreen">
+    <div class="success-icon">✓</div>
+    <div class="success-title">Thank you!</div>
+    <button class="success-reset" onclick="resetForm()">Submit another response</button>
+  </div>
+</div>
+
 <script>
 'use strict';
 
-// 1. UPDATED LABELS (Service Ratings Preserved)
-const ASPECTS = [
-  'Recruitment Process',
-  'Documentation Process',
-  'Communication & Updates',
-  'Professionalism',
-  'Processing Speed',
-  'Overall Satisfaction'
-];
-
+// 1. SERVICE RATINGS LOGIC (Preserved)
+const ASPECTS = ['Recruitment Process', 'Document Assistance', 'Communication & Updates', 'Recruiter Professionalism', 'Processing Speed', 'Overall Satisfaction'];
 const ratings = {}; 
 
-// ... [Keep your existing buildRatings function logic here] ...
+// ... [Keep your existing buildRatings and helper functions here] ...
 
 /* ── FINALIZED SUBMISSION LOGIC ── */
 async function handleSubmit() {
@@ -28,44 +32,43 @@ async function handleSubmit() {
   if (!nameEl.value.trim()) {
     nameEl.classList.add('error');
     nameEl.focus();
-    showToast('Please enter your full name', '⚠️');
+    alert('Please enter your full name');
     return;
   }
 
-  // Visual feedback
   const btn = document.querySelector('.submit-btn');
   btn.textContent = 'Submitting...';
   btn.disabled = true;
 
-  const data = getFormData();
-  // Format ratings for the sheet
-  data.ratings = ASPECTS.map((a, i) => `${a}: ${ratings[i]}/5`).join(' | ');
-  data.timestamp = new Date().toLocaleString('en-PH');
+  // Compile Data
+  const d = getFormData();
+  const payload = {
+    ...d,
+    ratings: ASPECTS.map((a, i) => `${a}: ${ratings[i] || 0}/5`).join(' | '),
+    timestamp: new Date().toLocaleString('en-PH')
+  };
 
-  // PASTE YOUR GOOGLE WEB APP URL HERE:
-  const WEB_APP_URL = 'PASTE_YOUR_DEPLOYED_URL_HERE';
+  // !!! IMPORTANT: PASTE YOUR GOOGLE WEB APP URL HERE !!!
+  const WEB_APP_URL = 'REPLACE_THIS_WITH_YOUR_DEPLOYMENT_URL';
 
   try {
     await fetch(WEB_APP_URL, {
       method: 'POST',
       mode: 'no-cors',
-      body: JSON.stringify(data)
+      body: JSON.stringify(payload)
     });
 
-    // Show Success
+    // Success UI
     document.getElementById('ff-form').style.display = 'none';
     document.getElementById('successScreen').style.display = 'block';
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    
-  } catch (error) {
-    console.error("Submission failed:", error);
-    showToast('Error sending feedback. Please check connection.', '❌');
+  } catch (err) {
+    console.error(err);
+    alert('Error submitting feedback. Please check your connection.');
     btn.textContent = 'Submit Feedback';
     btn.disabled = false;
   }
 }
-
-// ... [Keep your existing exportPdf, exportDocx, and modal functions below] ...
 </script>
 </body>
 </html>
