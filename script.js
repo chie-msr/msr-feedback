@@ -170,7 +170,7 @@ function clearForm() {
    CONFIGURATION
 ══════════════════════════════════════════════ */
 // 🔗 Backend URL: Replace with your Google Apps Script deployment URL
-const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyR_idFe7kyxaxZWzPldSZq8_h_m3n0z7_SwS7E4ywKtrFPpXYBVaA3AHgml8bzY0v9/exec';
+const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzrWoYTyMf9strnu6f5bR3IfvkI3Q5LFB2azzsAWv2QtbV6pF5Q7wu27r24cHrlk-mg/exec';
 
 // 🔑 Security: This must match the API_KEY set in your Google Apps Script
 const API_KEY = 'MSR_SECURE_TOKEN_2025';
