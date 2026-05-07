@@ -9,7 +9,7 @@ const ASPECTS = [
   'Recruitment Process',
   'Document Assistance',
   'Communication & Updates',
-  'Recruiter Professionalism',
+  'Professionalism',
   'Processing Speed',
   'Overall Satisfaction'
 ];
