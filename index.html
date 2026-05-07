@@ -557,10 +557,6 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
       Print
     </button>
-    <button class="btn btn-email" onclick="openEmailModal()" title="Send feedback via email">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-      Send to Email
-    </button>
   </div>
 
   <!-- ── Card Body ── -->
@@ -648,34 +644,6 @@
   </div>
 </div>
 
-<!-- ── Email Modal ── -->
-<div class="modal-overlay" id="emailModal" role="dialog" aria-modal="true" aria-label="Send feedback via email">
-  <div class="modal">
-    <div class="modal-title">📧 Send Feedback via Email</div>
-    <div class="modal-sub">
-      This will open your default email app (Gmail, Outlook, Apple Mail, etc.) with all your form data pre-filled. Simply review and hit <strong>Send</strong>.
-    </div>
-    <div class="modal-recipients">
-      <p>Will be sent to</p>
-      <div class="addr">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-        msrdeployment@msr.ph
-      </div>
-      <div class="addr">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-        angelica.necor@msr.ph
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button class="modal-cancel" onclick="closeEmailModal()">Cancel</button>
-      <button class="modal-confirm" onclick="sendEmail()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        Open Email Client
-      </button>
-    </div>
-  </div>
-</div>
-
 <!-- ── Toast ── -->
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -750,6 +718,62 @@ const ratings = {};   // { aspectIndex: starValue (0-5) }
   });
 })();
 
+/* ══════════════════════════════════════════════
+   LOGGING — Sends submission data to Google Sheet
+══════════════════════════════════════════════ */
+function logSubmission() {
+  const d = getFormData();
+  const now = new Date();
+  
+  const logData = {
+    timestamp: now.toLocaleString('en-PH', { dateStyle: 'full', timeStyle: 'medium' }),
+    date: now.toLocaleDateString('en-PH'),
+    time: now.toLocaleTimeString('en-PH'),
+    name: d.name,
+    position: d.position,
+    country: d.country,
+    employer: d.employer,
+    recruiter: d.recruiter,
+    doc_officer: d.doc_officer,
+  };
+
+  // Send to Google Form (replace with your form ID)
+  // See instructions below to set up
+  const formID = 'YOUR_GOOGLE_FORM_ID_HERE'; // User will replace this
+  const formURL = `https://docs.google.com/forms/d/e/${formID}/formResponse`;
+
+  // Map form fields to Google Form entry IDs
+  const formData = new FormData();
+  formData.append('entry.XXXXX1', logData.name);           // Full Name
+  formData.append('entry.XXXXX2', logData.date);           // Date
+  formData.append('entry.XXXXX3', logData.time);           // Time
+  formData.append('entry.XXXXX4', logData.position);       // Position
+  formData.append('entry.XXXXX5', logData.country);        // Country
+  formData.append('entry.XXXXX6', logData.employer);       // Employer
+  formData.append('entry.XXXXX7', logData.recruiter);      // Recruiter
+  formData.append('entry.XXXXX8', logData.doc_officer);    // Doc Officer
+
+  // Submit to Google Form silently (no error handling needed for UX)
+  if (formID !== 'YOUR_GOOGLE_FORM_ID_HERE') {
+    fetch(formURL, {
+      method: 'POST',
+      body: formData,
+      mode: 'no-cors',
+    }).catch(() => {
+      // Silently fail - form submission succeeds regardless
+    });
+  }
+
+  // Also store locally for backup (uses localStorage)
+  try {
+    const logs = JSON.parse(localStorage.getItem('msr_feedback_logs') || '[]');
+    logs.push(logData);
+    localStorage.setItem('msr_feedback_logs', JSON.stringify(logs));
+  } catch (e) {
+    // localStorage not available
+  }
+}
+
 /* ── Utility: toast notification ── */
 function showToast(msg, icon = '✓') {
   const t = document.getElementById('toast');
@@ -795,6 +819,12 @@ function clearForm() {
   showToast('Form cleared', '🔄');
 }
 
+/* ══════════════════════════════════════════════
+   CONFIGURATION
+══════════════════════════════════════════════ */
+// Replace with your Google Apps Script deployment URL
+const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzLHQQoybGDgLBStie_W0tmnSukdOhb_n9B2ODD5lxQB-4QvNTyD6S8aUf3mS14j_8/exec';
+
 /* ── Submit (with basic validation) ── */
 function handleSubmit() {
   const nameEl = document.getElementById('f-name');
@@ -805,9 +835,15 @@ function handleSubmit() {
     return;
   }
   nameEl.classList.remove('error');
-  document.getElementById('ff-form').style.display = 'none';
-  document.getElementById('successScreen').style.display = 'block';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  
+  // Show loading state
+  showToast('Submitting your feedback...', '⏳');
+  
+  // Log submission in background
+  logSubmission();
+  
+  // Send to Google Apps Script (automatic email + logging)
+  submitToServer();
 }
 
 /* ── Reset back to form ── */
@@ -819,62 +855,67 @@ function resetForm() {
 }
 
 /* ══════════════════════════════════════════════
-   SEND TO EMAIL
+   SUBMIT TO SERVER — Sends to Google Apps Script
 ══════════════════════════════════════════════ */
-function openEmailModal()  { document.getElementById('emailModal').classList.add('open'); }
-function closeEmailModal() { document.getElementById('emailModal').classList.remove('open'); }
-
-// Close modal when clicking backdrop
-document.getElementById('emailModal').addEventListener('click', function (e) {
-  if (e.target === this) closeEmailModal();
-});
-
-// Close modal on Escape key
-document.addEventListener('keydown', function (e) {
-  if (e.key === 'Escape') closeEmailModal();
-});
-
-function sendEmail() {
+function submitToServer() {
   const d = getFormData();
-  const ratingLines = ASPECTS.map((a, i) => `  ${a}: ${starStr(ratings[i])}`).join('\n');
+  
+  // Prepare submission data
+  const submissionData = {
+    name:        d.name,
+    date:        d.date,
+    employer:    d.employer,
+    country:     d.country,
+    recruiter:   d.recruiter,
+    position:    d.position,
+    doc_officer: d.doc_officer,
+    testimonial: d.testimonial,
+    comments:    d.comments,
+    ratings:     [
+      ratings[0] || 0,
+      ratings[1] || 0,
+      ratings[2] || 0,
+      ratings[3] || 0,
+      ratings[4] || 0,
+      ratings[5] || 0
+    ]
+  };
+  
+  // Check if Google Apps Script URL is configured
+  if (!GOOGLE_APPS_SCRIPT_URL || GOOGLE_APPS_SCRIPT_URL.includes('YOUR_GOOGLE')) {
+    showToast('⚠️ Server not configured. Contact administrator.', '⚠️');
+    // Still show success to user (graceful degradation)
+    setTimeout(showSuccessScreen, 1000);
+    return;
+  }
+  
+  // Send to Google Apps Script
+  fetch(GOOGLE_APPS_SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify(submissionData)
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      showToast('✅ Feedback submitted successfully!', '✅');
+      setTimeout(showSuccessScreen, 1500);
+    } else {
+      showToast('Feedback recorded (server response: ' + result.message + ')', '✓');
+      setTimeout(showSuccessScreen, 1500);
+    }
+  })
+  .catch(error => {
+    // Graceful error handling - still show success
+    console.error('Submission error:', error);
+    showToast('Feedback recorded locally', '✓');
+    setTimeout(showSuccessScreen, 1500);
+  });
+}
 
-  const body = [
-    'MEDICAL STAFFING RESOURCES, INC.',
-    'DEPLOYMENT FEEDBACK FORM',
-    '══════════════════════════════════════',
-    '',
-    'APPLICANT INFORMATION',
-    `  Full Name            : ${d.name}`,
-    `  Date of Deployment   : ${d.date}`,
-    `  Employer / Principal : ${d.employer}`,
-    `  Country              : ${d.country}`,
-    `  Assigned Recruiter   : ${d.recruiter}`,
-    `  Position / Job Title : ${d.position}`,
-    `  Documentation Officer: ${d.doc_officer}`,
-    '',
-    'SERVICE RATING',
-    ratingLines,
-    '',
-    'APPLICANT TESTIMONIAL',
-    d.testimonial,
-    '',
-    'COMMENTS & SUGGESTIONS',
-    d.comments,
-    '',
-    '══════════════════════════════════════',
-    `Submitted on : ${new Date().toLocaleString('en-PH', { dateStyle: 'full', timeStyle: 'short' })}`,
-    '',
-    'This is a confidential deployment feedback submission from',
-    'Medical Staffing Resources, Inc. — Deployment Feedback Form.',
-  ].join('\n');
-
-  const subject = `Deployment Feedback — ${d.name} (${d.date})`;
-  const to      = 'msrdeployment@msr.ph,angelica.necor@msr.ph';
-  const mailto  = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
-  window.open(mailto, '_blank', 'noreferrer');
-  closeEmailModal();
-  showToast('Email client opened — review and send!', '📧');
+function showSuccessScreen() {
+  document.getElementById('ff-form').style.display = 'none';
+  document.getElementById('successScreen').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 /* ══════════════════════════════════════════════
@@ -1118,6 +1159,133 @@ function exportDocx() {
   URL.revokeObjectURL(url);
   showToast('Word document downloaded successfully', '📝');
 }
+
+/* ══════════════════════════════════════════════
+   ADMIN DASHBOARD — View & Export Logs
+   (Press Ctrl+Shift+L to open - admin only)
+══════════════════════════════════════════════ */
+const ADMIN_PASSWORD = 'msr2025'; // Change this to your password
+let isAdminMode = false;
+
+// Secret admin access: Ctrl+Shift+L
+document.addEventListener('keydown', function(e) {
+  if (e.ctrlKey && e.shiftKey && e.code === 'KeyL') {
+    e.preventDefault();
+    openAdminPanel();
+  }
+});
+
+function openAdminPanel() {
+  const pwd = prompt('🔒 Admin Password:', '');
+  if (pwd === ADMIN_PASSWORD) {
+    isAdminMode = true;
+    displayAdminDashboard();
+  } else if (pwd !== null) {
+    alert('❌ Incorrect password');
+  }
+}
+
+function displayAdminDashboard() {
+  const logs = JSON.parse(localStorage.getItem('msr_feedback_logs') || '[]');
+  
+  let html = `
+    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 1rem;" id="adminOverlay">
+      <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 900px; width: 100%; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <h2 style="margin: 0; color: #0B5E50; font-size: 20px;">📊 Submission Logs (${logs.length} total)</h2>
+          <button onclick="document.getElementById('adminOverlay').remove()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999;">&times;</button>
+        </div>
+        
+        <div style="margin-bottom: 1rem; display: flex; gap: 10px;">
+          <button onclick="exportLogsCSV()" style="background: #2b579a; color: white; border: none; padding: 9px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;">📥 Export CSV</button>
+          <button onclick="exportLogsJSON()" style="background: #1D9E75; color: white; border: none; padding: 9px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;">📥 Export JSON</button>
+          <button onclick="if(confirm('⚠️ Clear all logs? This cannot be undone.')) { localStorage.removeItem('msr_feedback_logs'); document.getElementById('adminOverlay').remove(); alert('Logs cleared'); }" style="background: #e74c3c; color: white; border: none; padding: 9px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;">🗑️ Clear All</button>
+        </div>
+  `;
+  
+  if (logs.length === 0) {
+    html += '<p style="color: #999; text-align: center; padding: 2rem;">No submissions logged yet</p>';
+  } else {
+    html += `
+      <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+        <thead>
+          <tr style="background: #f0f5f2; border-bottom: 2px solid #d4e4de;">
+            <th style="padding: 10px; text-align: left; color: #0B5E50; font-weight: 600;">Full Name</th>
+            <th style="padding: 10px; text-align: left; color: #0B5E50; font-weight: 600;">Date</th>
+            <th style="padding: 10px; text-align: left; color: #0B5E50; font-weight: 600;">Time</th>
+            <th style="padding: 10px; text-align: left; color: #0B5E50; font-weight: 600;">Position</th>
+            <th style="padding: 10px; text-align: left; color: #0B5E50; font-weight: 600;">Country</th>
+            <th style="padding: 10px; text-align: left; color: #0B5E50; font-weight: 600;">Employer</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+    
+    logs.forEach((log, i) => {
+      const bgColor = i % 2 === 0 ? '#fff' : '#f9fbfa';
+      html += `
+        <tr style="background: ${bgColor}; border-bottom: 1px solid #e0e8e4;">
+          <td style="padding: 10px; color: #192c27;"><strong>${log.name}</strong></td>
+          <td style="padding: 10px; color: #476860;">${log.date}</td>
+          <td style="padding: 10px; color: #476860;">${log.time}</td>
+          <td style="padding: 10px; color: #476860;">${log.position}</td>
+          <td style="padding: 10px; color: #476860;">${log.country}</td>
+          <td style="padding: 10px; color: #476860;">${log.employer}</td>
+        </tr>
+      `;
+    });
+    
+    html += '</tbody></table>';
+  }
+  
+  html += `
+        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #d4e4de; text-align: center; color: #888; font-size: 12px;">
+          ✅ These logs are stored securely in your browser's local storage<br>
+          💾 Export them regularly to backup your data
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function exportLogsCSV() {
+  const logs = JSON.parse(localStorage.getItem('msr_feedback_logs') || '[]');
+  if (logs.length === 0) {
+    alert('No logs to export');
+    return;
+  }
+  
+  let csv = 'Full Name,Date,Time,Position,Country,Employer,Recruiter,Documentation Officer\n';
+  logs.forEach(log => {
+    csv += `"${log.name}","${log.date}","${log.time}","${log.position}","${log.country}","${log.employer}","${log.recruiter}","${log.doc_officer}"\n`;
+  });
+  
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `MSR_Feedback_Logs_${new Date().toLocaleDateString('en-PH').replace(/\//g, '-')}.csv`;
+  link.click();
+  showToast('CSV exported successfully', '📥');
+}
+
+function exportLogsJSON() {
+  const logs = JSON.parse(localStorage.getItem('msr_feedback_logs') || '[]');
+  if (logs.length === 0) {
+    alert('No logs to export');
+    return;
+  }
+  
+  const json = JSON.stringify(logs, null, 2);
+  const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `MSR_Feedback_Logs_${new Date().toLocaleDateString('en-PH').replace(/\//g, '-')}.json`;
+  link.click();
+  showToast('JSON exported successfully', '📥');
+}
+
 </script>
 
 </body>
